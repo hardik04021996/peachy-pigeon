@@ -1,3 +1,15 @@
+// Sound effects
+const jumpSound = new Audio("sounds/jump.mp3");
+const splatSound = new Audio("sounds/splat.mp3");
+const flushSound = new Audio("sounds/flush.mp3");
+const comboSound = new Audio("sounds/combo.mp3");
+const victorySound = new Audio("sounds/victory.mp3");
+
+// Background music
+const bgMusic = new Audio("sounds/bg_music.mp3");
+bgMusic.loop = true;
+bgMusic.volume = 0.4;
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -38,18 +50,29 @@ let drops = [];
 let pigeons = [];
 let dropTimer = 0;
 let score = 0;
+let highScore = Number(localStorage.getItem("highScore")) || 0;
 let gameOver = false;
 let currentBg = bg1;
 let currentEnemy = pigeon;
 
+
+let musicStarted = false;
 const keys = {};
 window.addEventListener("keydown", e => {
     keys[e.key] = true;
-    if (e.key === " " && !player.isJumping) {
-        player.velocityY = -18;
-        player.isJumping = true;
+  
+    if (!musicStarted) {
+      bgMusic.play().catch(() => {});
+      musicStarted = true;
     }
-});
+  
+    if (e.key === " " && !player.isJumping) {
+      jumpSound.play();
+      player.velocityY = -18;
+      player.isJumping = true;
+    }
+  });
+
 window.addEventListener("keyup", e => keys[e.key] = false);
 
 function generatePigeons(count) {
@@ -65,7 +88,11 @@ function generatePigeons(count) {
 }
 
 function updateAssets() {
+    if (score % 50 == 0 && score != 0 ) {
+        victorySound.play();
+    }   
     if (score >= 120) {
+        flushSound.play();
         currentBg = bg5;
         currentEnemy = toiletGod;
         dropImage = dragon;
@@ -87,7 +114,7 @@ function updateAssets() {
         dropImage = poop;
     }
 }
-
+  
 function update() {
     if (gameOver) return;
 
@@ -148,10 +175,18 @@ function update() {
             d.y + 30 > player.y
         ) {
             gameOver = true;
+            splatSound.play();
             setTimeout(() => {
-                alert("💥 SPLAT! You got hit! Final Score: " + score);
+                if (score > highScore) {
+                  highScore = score;
+                  localStorage.setItem("highScore", highScore);
+                  victorySound.play();
+                  alert("🎉 New High Score: " + score + " 💪");
+                } else {
+                  alert("💥 SPLAT! You got hit! Final Score: " + score);
+                }
                 window.location.reload();
-            }, 100);
+              }, 100);
         }
 
         if (d.y > canvas.height) {
@@ -164,7 +199,12 @@ function update() {
     ctx.fillStyle = "#fff";
     ctx.font = "20px Comic Sans MS";
     ctx.fillText("Score: " + score, 20, 30);
+    ctx.fillText("High Score: " + highScore, 20, 60);
 
+    if (bgMusic.paused) {
+        bgMusic.play().catch(() => {});
+    }
+      
     requestAnimationFrame(update);
 }
 
